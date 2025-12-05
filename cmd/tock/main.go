@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"tock/internal/config"
@@ -87,17 +88,36 @@ func run(cmd *cobra.Command, args []string) error {
 
 	// If JSON, we want both
 	if jsonFmt {
-		currentTask, err = sched.GetCurrentTask(now)
-		if err != nil {
-			return err
+		var wg sync.WaitGroup
+		var errCurrent, errNext, errPrevious error
+
+		wg.Add(3)
+
+		go func() {
+			defer wg.Done()
+			currentTask, errCurrent = sched.GetCurrentTask(now)
+		}()
+
+		go func() {
+			defer wg.Done()
+			nextTaskEvent, errNext = sched.GetNextTask(now)
+		}()
+
+		go func() {
+			defer wg.Done()
+			previousTask, errPrevious = sched.GetPreviousTask(now)
+		}()
+
+		wg.Wait()
+
+		if errCurrent != nil {
+			return errCurrent
 		}
-		nextTaskEvent, err = sched.GetNextTask(now)
-		if err != nil {
-			return err
+		if errNext != nil {
+			return errNext
 		}
-		previousTask, err = sched.GetPreviousTask(now)
-		if err != nil {
-			return err
+		if errPrevious != nil {
+			return errPrevious
 		}
 	} else {
 		// Natural language mode: depends on flag
@@ -129,29 +149,49 @@ func runWatch(sched *scheduler.Scheduler, notifyEnabled bool) error {
 		now := time.Now()
 		effectiveNow := now.Add(lookahead)
 
-		// Always fetch current and next for scheduling purposes
-		realCurrent, err := sched.GetCurrentTask(effectiveNow)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error getting current task: %v\n", err)
-			time.Sleep(5 * time.Second)
-			continue
-		}
+		var realCurrent, realNext, realPrevious *scheduler.TaskEvent
+		var errCurrent, errNext, errPrevious error
 
-		realNext, err := sched.GetNextTask(effectiveNow)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error getting next task: %v\n", err)
-			time.Sleep(5 * time.Second)
-			continue
-		}
+		// Parallelize task fetching
+		var wg sync.WaitGroup
 
-		var realPrevious *scheduler.TaskEvent
+		// Always fetch current and next
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+			realCurrent, errCurrent = sched.GetCurrentTask(effectiveNow)
+		}()
+
+		go func() {
+			defer wg.Done()
+			realNext, errNext = sched.GetNextTask(effectiveNow)
+		}()
+
 		if jsonFmt {
-			realPrevious, err = sched.GetPreviousTask(effectiveNow)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error getting previous task: %v\n", err)
-				time.Sleep(5 * time.Second)
-				continue
-			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				realPrevious, errPrevious = sched.GetPreviousTask(effectiveNow)
+			}()
+		}
+
+		wg.Wait()
+
+		if errCurrent != nil {
+			fmt.Fprintf(os.Stderr, "Error getting current task: %v\n", errCurrent)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		if errNext != nil {
+			fmt.Fprintf(os.Stderr, "Error getting next task: %v\n", errNext)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		if jsonFmt && errPrevious != nil {
+			fmt.Fprintf(os.Stderr, "Error getting previous task: %v\n", errPrevious)
+			time.Sleep(5 * time.Second)
+			continue
 		}
 
 		// --- Notification Logic ---
@@ -170,14 +210,18 @@ func runWatch(sched *scheduler.Scheduler, notifyEnabled bool) error {
 			if sig != lastNotifiedSig {
 				// If we are past the trigger time, send notification
 				if !now.Before(triggerTime) {
-					// Send notification
+					// Send notification asynchronously
 					msg := fmt.Sprintf("Starts at %s", realNext.StartTime.Format("15:04"))
 					if notifyAhead > 0 {
 						msg += fmt.Sprintf(" (in %s)", notifyAhead)
 					}
-					if err := notif.Send(realNext.Name, msg); err != nil {
-						fmt.Fprintf(os.Stderr, "Failed to send notification: %v\n", err)
-					}
+
+					go func(name, message string) {
+						if err := notif.Send(name, message); err != nil {
+							fmt.Fprintf(os.Stderr, "Failed to send notification: %v\n", err)
+						}
+					}(realNext.Name, msg)
+
 					lastNotifiedSig = sig
 				}
 			}
