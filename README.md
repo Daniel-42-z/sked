@@ -13,10 +13,11 @@ Tock is a CLI tool that helps you keep track of your schedule. It reads your tim
 
 ```bash
 # Build from source
-go build -o tock cmd/tock/main.go
+mkdir -p build
+go build -o build/tock cmd/tock/main.go
 
 # Install to system (example)
-sudo cp tock /usr/local/bin/
+sudo cp build/tock /usr/local/bin/
 ```
 
 ## Usage
