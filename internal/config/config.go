@@ -65,7 +65,11 @@ func LoadTOML(path string) (*Config, error) {
 
 	// Check for CSV redirection
 	if cfg.CSVPath != "" {
-		csvPath := cfg.CSVPath
+		csvPath, err := expandTilde(cfg.CSVPath)
+		if err != nil {
+			return nil, err
+		}
+
 		// If path is relative, resolve it relative to the TOML file
 		if !filepath.IsAbs(csvPath) {
 			csvPath = filepath.Join(filepath.Dir(path), csvPath)
@@ -170,6 +174,20 @@ func LoadCSV(path string) (*Config, error) {
 	return cfg, nil
 }
 
+// expandTilde expands the '~' prefix in a path to the user's home directory.
+func expandTilde(path string) (string, error) {
+	if !strings.HasPrefix(path, "~") {
+		return path, nil
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("could not get user home directory: %w", err)
+	}
+
+	return filepath.Join(home, path[1:]), nil
+}
+
 // parseDayName converts a day name (e.g., "Monday") to a cycle ID (0-6).
 // Assumes 0=Sunday, 1=Monday, ..., 6=Saturday to match time.Weekday().
 func parseDayName(name string) (int, error) {
@@ -210,4 +228,96 @@ func (c *Config) Validate() error {
 	}
 	// TODO: Validate time formats (HH:MM)
 	return nil
+}
+
+// FindOrCreateDefault finds the default config file, creating it if it doesn't exist.
+// It returns the path to the config file.
+func FindOrCreateDefault() (string, error) {
+	cfgDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("could not find user config directory: %w", err)
+	}
+
+	tockCfgDir := filepath.Join(cfgDir, "tock")
+	configPath := filepath.Join(tockCfgDir, "config.toml")
+
+	// Check if the config file already exists
+	if _, err := os.Stat(configPath); err == nil {
+		return configPath, nil
+	}
+
+	// --- Config file does not exist, so create it ---
+	fmt.Fprintf(os.Stderr, "No config file found. Creating a self-documenting default at %s\n", configPath)
+
+	// Create the directory
+	if err := os.MkdirAll(tockCfgDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	// Create the default, self-documenting config.toml
+	tomlContent := `# Welcome to Tock! This is your main configuration file.
+#
+# Tock can read your schedule in two ways:
+#  1. From a simple CSV file (e.g., for a standard weekly schedule).
+#  2. Directly from this TOML file (e.g., for complex, multi-day cycles).
+
+# --- Option 1: Using a CSV file (default for new setups) ---
+#
+# Point to a CSV file. The path can be absolute (/path/to/your/file.csv)
+# or relative to this config file's directory.
+# A sample.csv file has been created for you in this directory.
+#
+# The CSV file should have a header like:
+# Start,End,Mon,Tue,Wed,Thu,Fri,Sat,Sun
+csv_path = "sample.csv"
+
+
+# --- Option 2: Using TOML for your full schedule ---
+#
+# To define your schedule here, first comment out the "csv_path" line above.
+# Then, you can define your schedule cycle and days below.
+#
+# cycle_days: The number of days in your repeating schedule cycle (e.g., 7 for a week, or 6 for a 6-day school cycle).
+# anchor_date: A specific date (YYYY-MM-DD) that corresponds to day 1 of your cycle.
+#              This is required for cycles that are not 7 days.
+#
+# Example for a 2-day cycle:
+# cycle_days = 2
+# anchor_date = "2025-01-20" # A day that is "Day 1"
+
+# "[[day]]" represents a single day in your cycle.
+# "id" is the day number in the cycle (from 1 to cycle_days).
+#
+# [[day]]
+#   id = 1
+#   tasks = [
+#     { name = "Morning Project", start = "09:00", end = "12:00" },
+#     { name = "Team Sync",       start = "14:00", end = "14:30" },
+#   ]
+#
+# [[day]]
+#   id = 2
+#   tasks = [
+#     { name = "Client Meeting", start = "11:00", end = "12:30" },
+#     { name = "Code Review",    start = "15:00", end = "16:00" },
+#   ]
+`
+	if err := os.WriteFile(configPath, []byte(tomlContent), 0644); err != nil {
+		return "", fmt.Errorf("failed to write default config.toml: %w", err)
+	}
+
+	// Create the default sample.csv
+	csvPath := filepath.Join(tockCfgDir, "sample.csv")
+	csvContent := `Start,End,Mon,Tue,Wed,Thu,Fri,Sat,Sun
+09:00,09:50,Math,History,Math,History,Math,,
+10:04,11:00,History,Math,History,Math,History,,
+12:00,13:00,Lunch,Lunch,Lunch,Lunch,Lunch,,
+`
+	if _, err := os.Stat(csvPath); os.IsNotExist(err) {
+		if err := os.WriteFile(csvPath, []byte(csvContent), 0644); err != nil {
+			return "", fmt.Errorf("failed to write default sample.csv: %w", err)
+		}
+	}
+
+	return configPath, nil
 }

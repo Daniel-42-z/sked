@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"tock/internal/config"
@@ -30,7 +29,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.config/tock/tock.toml)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $XDG_CONFIG_HOME/tock/config.toml)")
 	rootCmd.Flags().BoolVarP(&jsonFmt, "json", "j", false, "output in JSON format")
 	rootCmd.Flags().BoolVarP(&showTime, "time", "t", false, "show time ranges in output")
 	rootCmd.Flags().BoolVarP(&nextTask, "next", "n", false, "show next task instead of current")
@@ -45,22 +44,12 @@ func main() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
+	var err error
 	// 1. Resolve config file path
 	if cfgFile == "" {
-		home, err := os.UserHomeDir()
+		cfgFile, err = config.FindOrCreateDefault()
 		if err != nil {
 			return err
-		}
-		// Try TOML first, then CSV
-		tomlPath := filepath.Join(home, ".config", "tock", "tock.toml")
-		csvPath := filepath.Join(home, ".config", "tock", "tock.csv")
-
-		if _, err := os.Stat(tomlPath); err == nil {
-			cfgFile = tomlPath
-		} else if _, err := os.Stat(csvPath); err == nil {
-			cfgFile = csvPath
-		} else {
-			return fmt.Errorf("no config file found at %s or %s", tomlPath, csvPath)
 		}
 	}
 
