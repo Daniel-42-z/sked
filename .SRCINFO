@@ -1,0 +1,14 @@
+pkgbase = tock
+	pkgdesc = A CLI tool to keep track of your schedule from a TOML or CSV config.
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/Daniel-42-z/tock
+	arch = x86_64
+	license = MIT
+	makedepends = go
+	source = tock::git+https://github.com/Daniel-42-z/tock.git
+	source = sample.csv
+	sha256sums = SKIP
+	sha256sums = SKIP
+
+pkgname = tock

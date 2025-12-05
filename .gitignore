@@ -1,2 +1,5 @@
 build
 AUR_PUBLISHING.md
+/tock/
+*.tar.zst
+sample-test.csv

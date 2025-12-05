@@ -19,6 +19,7 @@ var (
 	nextTask   bool
 	watchMode  bool
 	noTaskText string
+	lookahead  time.Duration
 )
 
 var rootCmd = &cobra.Command{
@@ -35,6 +36,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&nextTask, "next", "n", false, "show next task instead of current")
 	rootCmd.Flags().BoolVarP(&watchMode, "watch", "w", false, "continuous mode (watch for changes)")
 	rootCmd.Flags().StringVar(&noTaskText, "no-task-text", "No task currently.", "text to display when no task is found")
+	rootCmd.Flags().DurationVarP(&lookahead, "lookahead", "l", 0, "lookahead duration for watch mode")
 }
 
 func main() {
@@ -107,16 +109,17 @@ func run(cmd *cobra.Command, args []string) error {
 func runWatch(sched *scheduler.Scheduler) error {
 	for {
 		now := time.Now()
+		effectiveNow := now.Add(lookahead)
 
 		// Always fetch current and next for scheduling purposes
-		realCurrent, err := sched.GetCurrentTask(now)
+		realCurrent, err := sched.GetCurrentTask(effectiveNow)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error getting current task: %v\n", err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
 
-		realNext, err := sched.GetNextTask(now)
+		realNext, err := sched.GetNextTask(effectiveNow)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error getting next task: %v\n", err)
 			time.Sleep(5 * time.Second)
@@ -125,7 +128,7 @@ func runWatch(sched *scheduler.Scheduler) error {
 
 		var realPrevious *scheduler.TaskEvent
 		if jsonFmt {
-			realPrevious, err = sched.GetPreviousTask(now)
+			realPrevious, err = sched.GetPreviousTask(effectiveNow)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error getting previous task: %v\n", err)
 				time.Sleep(5 * time.Second)
@@ -168,7 +171,7 @@ func runWatch(sched *scheduler.Scheduler) error {
 			// No known future events. Check back in a minute.
 			waitDuration = 1 * time.Minute
 		} else {
-			waitDuration = time.Until(targetTime)
+			waitDuration = targetTime.Sub(effectiveNow)
 		}
 
 		// Add a small buffer to ensure we land in the next state
@@ -185,10 +188,10 @@ func runWatch(sched *scheduler.Scheduler) error {
 			if !targetTime.IsZero() {
 				for {
 					now = time.Now()
-					if !now.Before(targetTime) {
+					if !now.Add(lookahead).Before(targetTime) {
 						break
 					}
-					remaining := targetTime.Sub(now)
+					remaining := targetTime.Sub(now.Add(lookahead))
 					if remaining > 0 {
 						time.Sleep(remaining + 50*time.Millisecond)
 					}
