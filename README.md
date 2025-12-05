@@ -8,6 +8,7 @@ Tock is a CLI tool that helps you keep track of your schedule. It reads your tim
 - **Cycle Support**: Handle non-standard schedules (e.g., 6-day school cycles) using TOML.
 - **Output Formats**: Natural language or JSON output for integration with scripts.
 - **Continuous Mode**: Watch mode for status bars (Waybar, Polybar, etc.).
+- **Desktop Notifications**: Native notifications on Linux, macOS, and Windows.
 
 ## Installation
 
@@ -28,6 +29,7 @@ tock --next           # Show next task
 tock --time           # Include time range
 tock --json           # Output as JSON
 tock --watch          # Run in continuous mode
+tock --watch --notify-ahead 5m # Notify 5m before tasks (requires --watch), will still show task info in output based on the other flags
 tock --config my.toml # Use specific config file
 ```
 
