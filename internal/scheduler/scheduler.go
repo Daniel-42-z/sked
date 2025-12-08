@@ -103,6 +103,34 @@ func (s *Scheduler) GetNextTask(now time.Time) (*TaskEvent, error) {
 	return nil, nil
 }
 
+// GetTasksForDate returns all tasks scheduled for the given date.
+func (s *Scheduler) GetTasksForDate(date time.Time) ([]TaskEvent, error) {
+	dayID, err := s.getCycleDayID(date)
+	if err != nil {
+		return nil, err
+	}
+
+	tasks := s.getTasksForDay(dayID)
+	var events []TaskEvent
+	for _, t := range tasks {
+		start, end, err := s.parseTaskTimes(date, t)
+		if err != nil {
+			return nil, fmt.Errorf("invalid time in config: %w", err)
+		}
+		events = append(events, TaskEvent{
+			Name:      t.Name,
+			StartTime: start,
+			EndTime:   end,
+		})
+	}
+
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].StartTime.Before(events[j].StartTime)
+	})
+
+	return events, nil
+}
+
 // GetPreviousTask returns the most recently finished task.
 func (s *Scheduler) GetPreviousTask(now time.Time) (*TaskEvent, error) {
 	// Search backwards from 'now'

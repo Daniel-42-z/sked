@@ -85,13 +85,14 @@ func run(cmd *cobra.Command, args []string) error {
 	// 5. Output
 	now := time.Now()
 	var currentTask, nextTaskEvent, previousTask *scheduler.TaskEvent
+	var dayTasks []scheduler.TaskEvent
 
 	// If JSON, we want both
 	if jsonFmt {
 		var wg sync.WaitGroup
-		var errCurrent, errNext, errPrevious error
+		var errCurrent, errNext, errPrevious, errDayTasks error
 
-		wg.Add(3)
+		wg.Add(4)
 
 		go func() {
 			defer wg.Done()
@@ -108,6 +109,11 @@ func run(cmd *cobra.Command, args []string) error {
 			previousTask, errPrevious = sched.GetPreviousTask(now)
 		}()
 
+		go func() {
+			defer wg.Done()
+			dayTasks, errDayTasks = sched.GetTasksForDate(now)
+		}()
+
 		wg.Wait()
 
 		if errCurrent != nil {
@@ -118,6 +124,9 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 		if errPrevious != nil {
 			return errPrevious
+		}
+		if errDayTasks != nil {
+			return errDayTasks
 		}
 	} else {
 		// Natural language mode: depends on flag
@@ -132,7 +141,7 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	return output.Print(previousTask, currentTask, nextTaskEvent, jsonFmt, showTime, noTaskText)
+	return output.Print(previousTask, currentTask, nextTaskEvent, dayTasks, jsonFmt, showTime, noTaskText)
 }
 
 func runWatch(sched *scheduler.Scheduler, notifyEnabled bool) error {
@@ -150,7 +159,8 @@ func runWatch(sched *scheduler.Scheduler, notifyEnabled bool) error {
 		effectiveNow := now.Add(lookahead)
 
 		var realCurrent, realNext, realPrevious *scheduler.TaskEvent
-		var errCurrent, errNext, errPrevious error
+		var dayTasks []scheduler.TaskEvent
+		var errCurrent, errNext, errPrevious, errDayTasks error
 
 		// Parallelize task fetching
 		var wg sync.WaitGroup
@@ -169,10 +179,14 @@ func runWatch(sched *scheduler.Scheduler, notifyEnabled bool) error {
 		}()
 
 		if jsonFmt {
-			wg.Add(1)
+			wg.Add(2)
 			go func() {
 				defer wg.Done()
 				realPrevious, errPrevious = sched.GetPreviousTask(effectiveNow)
+			}()
+			go func() {
+				defer wg.Done()
+				dayTasks, errDayTasks = sched.GetTasksForDate(effectiveNow)
 			}()
 		}
 
@@ -188,10 +202,17 @@ func runWatch(sched *scheduler.Scheduler, notifyEnabled bool) error {
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		if jsonFmt && errPrevious != nil {
-			fmt.Fprintf(os.Stderr, "Error getting previous task: %v\n", errPrevious)
-			time.Sleep(5 * time.Second)
-			continue
+		if jsonFmt {
+			if errPrevious != nil {
+				fmt.Fprintf(os.Stderr, "Error getting previous task: %v\n", errPrevious)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			if errDayTasks != nil {
+				fmt.Fprintf(os.Stderr, "Error getting day tasks: %v\n", errDayTasks)
+				time.Sleep(5 * time.Second)
+				continue
+			}
 		}
 
 		// --- Notification Logic ---
@@ -242,7 +263,7 @@ func runWatch(sched *scheduler.Scheduler, notifyEnabled bool) error {
 			}
 		}
 
-		output.Print(outPrevious, outCurrent, outNext, jsonFmt, showTime, noTaskText)
+		output.Print(outPrevious, outCurrent, outNext, dayTasks, jsonFmt, showTime, noTaskText)
 
 		// --- Sleep Calculation ---
 		// We need to wake up for:
