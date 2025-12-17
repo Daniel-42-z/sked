@@ -27,6 +27,8 @@
 # Default is 7.
 cycle_days = 7
 
+date_format = "01/02/2006"
+csv_path = "/home/daniel/Documents/School/Timetable.csv"
 # Required ONLY if cycle_days is NOT 7.
 # This date acts as the "Day 0" for your cycle calculations.
 # Format: "YYYY-MM-DD"

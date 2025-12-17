@@ -16,6 +16,7 @@ type Config struct {
 	CycleDays  int    `toml:"cycle_days"`
 	AnchorDate string `toml:"anchor_date"`
 	CSVPath    string `toml:"csv_path"`
+	DateFormat string `toml:"date_format"`
 	Days       []Day  `toml:"day"`
 }
 
@@ -40,7 +41,7 @@ func Load(path string) (*Config, error) {
 	case ".toml":
 		return LoadTOML(path)
 	case ".csv":
-		return LoadCSV(path)
+		return LoadCSV(path, "")
 	default:
 		return nil, fmt.Errorf("unsupported file extension: %s", ext)
 	}
@@ -74,7 +75,7 @@ func LoadTOML(path string) (*Config, error) {
 		if !filepath.IsAbs(csvPath) {
 			csvPath = filepath.Join(filepath.Dir(path), csvPath)
 		}
-		return LoadCSV(csvPath)
+		return LoadCSV(csvPath, cfg.DateFormat)
 	}
 
 	return &cfg, nil
@@ -83,7 +84,7 @@ func LoadTOML(path string) (*Config, error) {
 // LoadCSV reads a CSV configuration file.
 // CSV format assumes a standard 7-day cycle.
 // Header: Start,End,Mon,Tue,Wed,Thu,Fri,Sat,Sun (flexible day column order)
-func LoadCSV(path string) (*Config, error) {
+func LoadCSV(path string, dateFormat string) (*Config, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -132,6 +133,7 @@ func LoadCSV(path string) (*Config, error) {
 	cfg := &Config{
 		CycleDays: 7,
 		Days:      make([]Day, 0),
+		DateFormat: dateFormat,
 	}
 	dayMap := make(map[int][]Task)
 
@@ -270,6 +272,13 @@ func FindOrCreateDefault() (string, error) {
 # The CSV file should have a header like:
 # Start,End,Mon,Tue,Wed,Thu,Fri,Sat,Sun
 csv_path = "sample.csv"
+
+
+# The format for displaying dates in the TUI mode.
+# Uses Go's time.Format reference time to define layouts.
+# For example, "Mon Jan 2 2006" or "2006-01-02".
+# Default is "Monday, January 2, 2006".
+# date_format = "2006-01-02"
 
 
 # --- Option 2: Using TOML for your full schedule ---

@@ -45,7 +45,7 @@ func runTUI(cmd *cobra.Command, args []string) error {
 	sched := scheduler.New(cfg)
 
 	// 3. Start Bubble Tea program
-	p := tea.NewProgram(initialModel(sched), tea.WithAltScreen())
+	p := tea.NewProgram(initialModel(sched, cfg), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("error running TUI: %w", err)
 	}
@@ -61,11 +61,12 @@ type model struct {
 	err         error
 	width       int
 	height      int
+	dateFormat  string // New field for date format
 }
 
 type tickMsg time.Time
 
-func initialModel(sched *scheduler.Scheduler) model {
+func initialModel(sched *scheduler.Scheduler, cfg *config.Config) model {
 	columns := []table.Column{
 		{Title: "Time", Width: 15},
 		{Title: "Task", Width: 40},
@@ -88,10 +89,16 @@ func initialModel(sched *scheduler.Scheduler) model {
 		Bold(false)
 	t.SetStyles(s)
 
+	dateFormat := cfg.DateFormat
+	if dateFormat == "" {
+		dateFormat = "2006-01-02 Monday" // Default format: yyyy-mm-dd + day of week (full name)
+	}
+
 	m := model{
 		sched:       sched,
 		table:       t,
 		currentDate: time.Now(),
+		dateFormat:  dateFormat,
 	}
 
 	m.refreshTable()
@@ -201,7 +208,7 @@ func (m model) View() string {
 		return fmt.Sprintf("Error: %v", m.err)
 	}
 
-	dateStr := m.currentDate.Format("Monday, January 2, 2006")
+	dateStr := m.currentDate.Format(m.dateFormat)
 	if isSameDay(m.currentDate, time.Now()) {
 		dateStr += " (Today)"
 	}
@@ -220,7 +227,7 @@ func (m model) View() string {
 		lipgloss.JoinVertical(lipgloss.Left,
 			header,
 			m.table.View(),
-			"\n  ←/h: prev day • →/l: next day • q: quit",
+			"\n  ←/h: prev day • →/l: next day • t: return to today • q: quit",
 		),
 	) + "\n"
 }
