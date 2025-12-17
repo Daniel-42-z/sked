@@ -3,3 +3,4 @@ AUR_PUBLISHING.md
 /tock/
 *.tar.zst
 sample-test.csv
+config.toml
