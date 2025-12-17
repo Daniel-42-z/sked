@@ -13,6 +13,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	dateDisplayColor        = lipgloss.Color("40")
+	taskHighlightBackground = lipgloss.Color("22")
+	taskHighlightForeground = lipgloss.Color("7")
+)
+
 var tuiCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Show interactive timetable",
@@ -84,8 +90,8 @@ func initialModel(sched *scheduler.Scheduler, cfg *config.Config) model {
 		BorderBottom(true).
 		Bold(false)
 	s.Selected = s.Selected.
-		Foreground(lipgloss.Color("229")).
-		Background(lipgloss.Color("57")).
+		Foreground(taskHighlightForeground).
+		Background(taskHighlightBackground).
 		Bold(false)
 	t.SetStyles(s)
 
@@ -185,8 +191,8 @@ func (m *model) refreshTable() {
 
 	if activeRowIndex != -1 {
 		s.Selected = s.Selected.
-			Foreground(lipgloss.Color("229")).
-			Background(lipgloss.Color("57")).
+			Foreground(taskHighlightForeground).
+			Background(taskHighlightBackground).
 			Bold(false).
 			Padding(0)
 		m.table.SetCursor(activeRowIndex)
@@ -215,7 +221,7 @@ func (m model) View() string {
 
 	header := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("75")).
+		Foreground(dateDisplayColor).
 		PaddingBottom(1).
 		Render(dateStr)
 
