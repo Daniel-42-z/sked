@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	dateDisplayColor        = lipgloss.Color("40")
-	taskHighlightBackground = lipgloss.Color("22")
-	taskHighlightForeground = lipgloss.Color("7")
-	borderColor             = lipgloss.Color("240")
+	dateDisplayColor          = lipgloss.Color("40")
+	taskHighlightBackground   = lipgloss.Color("22")
+	borderHighlightBackground = lipgloss.Color("40")
+	taskHighlightForeground   = lipgloss.Color("7")
+	borderColor               = lipgloss.Color("240")
 )
 
 var tuiCmd = &cobra.Command{
@@ -209,7 +210,7 @@ func (m *model) refreshTable() {
 			nextTask := tasks[i+1]
 			// Gap detection
 			if isToday && now.After(task.EndTime) && now.Before(nextTask.StartTime) {
-				bottomBorderColor = taskHighlightBackground
+				bottomBorderColor = borderHighlightBackground
 			}
 		}
 
