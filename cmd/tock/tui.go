@@ -166,6 +166,12 @@ func (m *model) refreshTable() {
 		taskColWidth = 10
 	}
 
+	// Determine if top border should be highlighted
+	topBorderColor := borderColor
+	if isToday && len(tasks) > 0 && now.Before(tasks[0].StartTime) {
+		topBorderColor = borderHighlightBackground
+	}
+
 	// Base styles
 	baseStyle := lipgloss.NewStyle().Padding(0, 1)
 	headerStyle := baseStyle.Bold(true).Align(lipgloss.Center)
@@ -195,10 +201,12 @@ func (m *model) refreshTable() {
 		headerStyle.Width(timeColWidth).
 			Border(hTimeBorder, true, true, true, true).
 			BorderForeground(borderColor).
+			BorderTopForeground(topBorderColor).
 			Render("Time"),
 		headerStyle.Width(taskColWidth).
 			Border(hTaskBorder, true, true, true, false).
 			BorderForeground(borderColor).
+			BorderTopForeground(topBorderColor).
 			Render("Task"),
 	)
 
@@ -210,13 +218,20 @@ func (m *model) refreshTable() {
 
 		timeStr := fmt.Sprintf("%s - %s", task.StartTime.Format("15:04"), task.EndTime.Format("15:04"))
 
-		// Check if we need to highlight the bottom border (gap between this and next task)
+		// Check if we need to highlight the bottom border (gap between this and next task, or after last task)
 		bottomBorderColor := borderColor
-		if i < len(tasks)-1 {
-			nextTask := tasks[i+1]
-			// Gap detection
-			if isToday && now.After(task.EndTime) && now.Before(nextTask.StartTime) {
-				bottomBorderColor = borderHighlightBackground
+		if isToday {
+			if i < len(tasks)-1 {
+				nextTask := tasks[i+1]
+				// Gap detection
+				if now.After(task.EndTime) && now.Before(nextTask.StartTime) {
+					bottomBorderColor = borderHighlightBackground
+				}
+			} else {
+				// After last task
+				if now.After(task.EndTime) {
+					bottomBorderColor = borderHighlightBackground
+				}
 			}
 		}
 
