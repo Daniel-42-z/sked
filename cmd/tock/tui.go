@@ -162,7 +162,7 @@ func (m *model) refreshTable() {
 
 	// Base styles
 	baseStyle := lipgloss.NewStyle().Padding(0, 1)
-	headerStyle := baseStyle.Copy().Bold(true).Align(lipgloss.Center)
+	headerStyle := baseStyle.Bold(true).Align(lipgloss.Center)
 
 	// Custom borders for table continuity
 	hTimeBorder := lipgloss.NormalBorder()
@@ -186,11 +186,11 @@ func (m *model) refreshTable() {
 	// Time: Top, Right, Bottom, Left borders
 	// Task: Top, Right, Bottom borders (Left shared)
 	header := lipgloss.JoinHorizontal(lipgloss.Top,
-		headerStyle.Copy().Width(timeColWidth).
+		headerStyle.Width(timeColWidth).
 			Border(hTimeBorder, true, true, true, true).
 			BorderForeground(borderColor).
 			Render("Time"),
-		headerStyle.Copy().Width(taskColWidth).
+		headerStyle.Width(taskColWidth).
 			Border(hTaskBorder, true, true, true, false).
 			BorderForeground(borderColor).
 			Render("Task"),
@@ -214,7 +214,7 @@ func (m *model) refreshTable() {
 			}
 		}
 
-		rowStyle := baseStyle.Copy()
+		rowStyle := baseStyle
 		if isActive {
 			rowStyle = rowStyle.Foreground(taskHighlightForeground).Background(taskHighlightBackground)
 		}
@@ -237,13 +237,13 @@ func (m *model) refreshTable() {
 		}
 
 		// Time Cell: Bottom, Right, Left borders
-		tStyle := rowStyle.Copy().Width(timeColWidth).
+		tStyle := rowStyle.Width(timeColWidth).
 			Border(timeBorder, false, true, true, true).
 			BorderForeground(borderColor).
 			BorderBottomForeground(bottomBorderColor)
 
 		// Task Cell: Bottom, Right borders
-		tskStyle := rowStyle.Copy().Width(taskColWidth).
+		tskStyle := rowStyle.Width(taskColWidth).
 			Border(taskBorder, false, true, true, false).
 			BorderForeground(borderColor).
 			BorderBottomForeground(bottomBorderColor)
