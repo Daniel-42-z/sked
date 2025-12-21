@@ -154,8 +154,7 @@ func LoadCSV(path string, dateFormat string) (*Config, error) {
 				continue
 			}
 			name := strings.TrimSpace(record[colIdx])
-			// Ignore empty strings and "/" (placeholder for empty slot)
-			if name != "" && name != "/" {
+			if name != "" {
 				task := Task{
 					Name:  name,
 					Start: start,

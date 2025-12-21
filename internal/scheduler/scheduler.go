@@ -39,6 +39,9 @@ func (s *Scheduler) GetCurrentTask(now time.Time) (*TaskEvent, error) {
 		}
 
 		if (now.Equal(start) || now.After(start)) && now.Before(end) {
+			if t.Name == "/" {
+				return nil, nil
+			}
 			return &TaskEvent{
 				Name:      t.Name,
 				StartTime: start,
@@ -95,6 +98,9 @@ func (s *Scheduler) GetNextTask(now time.Time) (*TaskEvent, error) {
 
 		for _, event := range dayEvents {
 			if event.StartTime.After(now) {
+				if event.Name == "/" {
+					continue
+				}
 				return &event, nil
 			}
 		}
@@ -169,6 +175,9 @@ func (s *Scheduler) GetPreviousTask(now time.Time) (*TaskEvent, error) {
 		for _, event := range dayEvents {
 			// We want the task with the latest EndTime that is <= now.
 			if !event.EndTime.After(now) {
+				if event.Name == "/" {
+					continue
+				}
 				return &event, nil
 			}
 		}

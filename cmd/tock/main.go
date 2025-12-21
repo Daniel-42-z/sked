@@ -239,20 +239,18 @@ func runWatch(sched *scheduler.Scheduler, notifyEnabled bool) error {
 			if sig != lastNotifiedSig {
 				// If we are past the trigger time, send notification
 				if !now.Before(triggerTime) {
-					// Don't notify if the task name is just "/" (placeholder)
-					if realNext.Name != "/" {
-						// Send notification asynchronously
-						msg := fmt.Sprintf("Starts at %s", realNext.StartTime.Format("15:04"))
-						if notifyAhead > 0 {
-							msg += fmt.Sprintf(" (in %s)", notifyAhead)
-						}
-
-						go func(name, message string) {
-							if err := notif.Send(name, message); err != nil {
-								fmt.Fprintf(os.Stderr, "Failed to send notification: %v\n", err)
-							}
-						}(realNext.Name, msg)
+					// Send notification asynchronously
+					msg := fmt.Sprintf("Starts at %s", realNext.StartTime.Format("15:04"))
+					if notifyAhead > 0 {
+						msg += fmt.Sprintf(" (in %s)", notifyAhead)
 					}
+
+					go func(name, message string) {
+						if err := notif.Send(name, message); err != nil {
+							fmt.Fprintf(os.Stderr, "Failed to send notification: %v\n", err)
+						}
+					}(realNext.Name, msg)
+
 					lastNotifiedSig = sig
 				}
 			}
