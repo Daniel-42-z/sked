@@ -32,19 +32,29 @@ func init() {
 }
 
 func runTUI(cmd *cobra.Command, args []string) error {
-	// 1. Load Config (Reusing logic from run)
-	if cfgFile == "" {
-		var err error
-		cfgFile, err = config.FindOrCreateDefault()
+	var cfg *config.Config
+	var err error
+
+	if tmpFile != "" {
+		cfg, err = config.LoadTmpCSV(tmpFile)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to load temporary config: %w", err)
+		}
+	} else {
+		// 1. Load Config (Reusing logic from run)
+		if cfgFile == "" {
+			cfgFile, err = config.FindOrCreateDefault()
+			if err != nil {
+				return err
+			}
+		}
+
+		cfg, err = config.Load(cfgFile)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
 		}
 	}
 
-	cfg, err := config.Load(cfgFile)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
 	if err := cfg.Validate(); err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}

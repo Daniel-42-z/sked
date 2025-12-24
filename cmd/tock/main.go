@@ -16,6 +16,7 @@ import (
 
 var (
 	cfgFile     string
+	tmpFile     string
 	jsonFmt     bool
 	jsonAll     bool
 	showTime    bool
@@ -35,6 +36,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $XDG_CONFIG_HOME/tock/config.toml)")
+	rootCmd.PersistentFlags().StringVar(&tmpFile, "tmp", "", "temporary csv config file (only for today's tasks)")
 	rootCmd.Flags().BoolVarP(&jsonFmt, "json", "j", false, "output in JSON format")
 	rootCmd.Flags().BoolVar(&jsonAll, "all", false, "include all tasks for today in JSON output (only with --json)")
 	rootCmd.Flags().BoolVarP(&showTime, "time", "t", false, "show time ranges in output")
@@ -43,6 +45,8 @@ func init() {
 	rootCmd.Flags().StringVar(&noTaskText, "no-task-text", "No task currently.", "text to display when no task is found")
 	rootCmd.Flags().DurationVarP(&lookahead, "lookahead", "l", 0, "lookahead duration for watch mode (affects output time)")
 	rootCmd.Flags().DurationVar(&notifyAhead, "notify-ahead", 0, "enable notifications with this lookahead duration (use 0s for immediate)")
+
+	rootCmd.MarkFlagsMutuallyExclusive("config", "tmp")
 }
 
 func main() {
@@ -58,20 +62,30 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("--notify-ahead can only be used with --watch (-w)")
 	}
 
+	var cfg *config.Config
 	var err error
-	// 1. Resolve config file path
-	if cfgFile == "" {
-		cfgFile, err = config.FindOrCreateDefault()
+
+	if tmpFile != "" {
+		cfg, err = config.LoadTmpCSV(tmpFile)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to load temporary config: %w", err)
+		}
+	} else {
+		// 1. Resolve config file path
+		if cfgFile == "" {
+			cfgFile, err = config.FindOrCreateDefault()
+			if err != nil {
+				return err
+			}
+		}
+
+		// 2. Load Config
+		cfg, err = config.Load(cfgFile)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
 		}
 	}
 
-	// 2. Load Config
-	cfg, err := config.Load(cfgFile)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
 	if err := cfg.Validate(); err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}

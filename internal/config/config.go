@@ -176,6 +176,87 @@ func LoadCSV(path string, dateFormat string) (*Config, error) {
 	return cfg, nil
 }
 
+// LoadTmpCSV reads a temporary CSV configuration file.
+// It expects "Start", "End", and "Task" columns.
+// Tasks are assigned to the current day (as of when this function is called).
+func LoadTmpCSV(path string) (*Config, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	reader := csv.NewReader(f)
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(records) < 2 {
+		return nil, fmt.Errorf("csv file is empty or missing header")
+	}
+
+	header := records[0]
+	if len(header) < 3 {
+		return nil, fmt.Errorf("header must have at least Start, End and Task columns")
+	}
+
+	startCol := -1
+	endCol := -1
+	taskCol := -1
+
+	for i, col := range header {
+		col = strings.ToLower(strings.TrimSpace(col))
+		if col == "start" || col == "time-start" {
+			startCol = i
+		} else if col == "end" || col == "time-end" {
+			endCol = i
+		} else if col == "task" {
+			taskCol = i
+		}
+	}
+
+	if startCol == -1 || endCol == -1 || taskCol == -1 {
+		return nil, fmt.Errorf("header must contain 'Start', 'End' and 'Task' columns")
+	}
+
+	cfg := &Config{
+		CycleDays: 7,
+		Days:      make([]Day, 0),
+	}
+
+	// Determine current day ID (0-6)
+	currentDayID := int(time.Now().Weekday())
+	var tasks []Task
+
+	for _, record := range records[1:] {
+		if len(record) <= startCol || len(record) <= endCol || len(record) <= taskCol {
+			continue // Skip invalid rows
+		}
+
+		start := strings.TrimSpace(record[startCol])
+		end := strings.TrimSpace(record[endCol])
+		name := strings.TrimSpace(record[taskCol])
+
+		if start == "" || name == "" {
+			continue
+		}
+
+		tasks = append(tasks, Task{
+			Name:  name,
+			Start: start,
+			End:   end,
+		})
+	}
+
+	cfg.Days = append(cfg.Days, Day{
+		ID:    currentDayID,
+		Tasks: tasks,
+	})
+
+	return cfg, nil
+}
+
 // expandTilde expands the '~' prefix in a path to the user's home directory.
 func expandTilde(path string) (string, error) {
 	if !strings.HasPrefix(path, "~") {
