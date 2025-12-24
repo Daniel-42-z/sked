@@ -166,10 +166,10 @@ func (m *model) refreshTable() {
 		taskColWidth = 10
 	}
 
-	// Determine if top border should be highlighted
-	topBorderColor := borderColor
+	// Determine if header bottom border should be highlighted (between header and first task)
+	headerBottomBorderColor := borderColor
 	if isToday && len(tasks) > 0 && now.Before(tasks[0].StartTime) {
-		topBorderColor = borderHighlightBackground
+		headerBottomBorderColor = borderHighlightBackground
 	}
 
 	// Base styles
@@ -201,12 +201,12 @@ func (m *model) refreshTable() {
 		headerStyle.Width(timeColWidth).
 			Border(hTimeBorder, true, true, true, true).
 			BorderForeground(borderColor).
-			BorderTopForeground(topBorderColor).
+			BorderBottomForeground(headerBottomBorderColor).
 			Render("Time"),
 		headerStyle.Width(taskColWidth).
 			Border(hTaskBorder, true, true, true, false).
 			BorderForeground(borderColor).
-			BorderTopForeground(topBorderColor).
+			BorderBottomForeground(headerBottomBorderColor).
 			Render("Task"),
 	)
 
