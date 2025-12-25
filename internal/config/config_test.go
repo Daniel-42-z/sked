@@ -61,3 +61,48 @@ func TestLoadTOML_TildeExpansion(t *testing.T) {
 		t.Errorf("Expected task name 'Test Task', got '%s'", cfg.Days[0].Tasks[0].Name)
 	}
 }
+
+func TestLoadCSV_EmptyContent(t *testing.T) {
+	content := "Start,End,Mon,Tue,Wed,Thu,Fri,Sat,Sun"
+	tmpFile, err := os.CreateTemp("", "empty*.csv")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	if _, err := tmpFile.WriteString(content); err != nil {
+		t.Fatalf("Failed to write to temp file: %v", err)
+	}
+	tmpFile.Close()
+
+	cfg, err := LoadCSV(tmpFile.Name(), "")
+	if err != nil {
+		t.Fatalf("LoadCSV() returned unexpected error for header-only file: %v", err)
+	}
+	if len(cfg.Days) != 0 {
+		t.Errorf("Expected 0 days for empty CSV, got %d", len(cfg.Days))
+	}
+}
+
+func TestLoadTmpCSV_EmptyContent(t *testing.T) {
+	content := "Start,End,Task"
+	tmpFile, err := os.CreateTemp("", "empty_tmp*.csv")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	if _, err := tmpFile.WriteString(content); err != nil {
+		t.Fatalf("Failed to write to temp file: %v", err)
+	}
+	tmpFile.Close()
+
+	cfg, err := LoadTmpCSV(tmpFile.Name())
+	if err != nil {
+		t.Fatalf("LoadTmpCSV() returned unexpected error for header-only file: %v", err)
+	}
+	if len(cfg.Days) != 1 {
+		t.Errorf("Expected 1 day for TmpCSV (current day), got %d", len(cfg.Days))
+	}
+	if len(cfg.Days[0].Tasks) != 0 {
+		t.Errorf("Expected 0 tasks, got %d", len(cfg.Days[0].Tasks))
+	}
+}

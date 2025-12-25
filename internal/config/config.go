@@ -117,8 +117,8 @@ func LoadCSV(path string, dateFormat string) (*Config, error) {
 		return nil, err
 	}
 
-	if len(records) < 2 {
-		return nil, fmt.Errorf("csv file is empty or missing header")
+	if len(records) < 1 {
+		return nil, fmt.Errorf("csv file is empty")
 	}
 
 	header := records[0]
@@ -212,8 +212,8 @@ func LoadTmpCSV(path string) (*Config, error) {
 		return nil, err
 	}
 
-	if len(records) < 2 {
-		return nil, fmt.Errorf("csv file is empty or missing header")
+	if len(records) < 1 {
+		return nil, fmt.Errorf("csv file is empty")
 	}
 
 	header := records[0]
