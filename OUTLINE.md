@@ -13,7 +13,7 @@ Tock is a CLI-based timetable management tool designed to help users track their
 ### `cmd/`
 Entry points for the application.
 - `cmd/tock/main.go`: The main CLI entry point. Handles flag parsing, configuration loading, and command routing (e.g., `run`, `runWatch`).
-- `cmd/tock/tui.go`: Implementation of the interactive TUI command (`tock show`) using the Bubble Tea framework.
+- `cmd/tock/tui.go`: Implementation of the interactive TUI command (`tock show`) using the Bubble Tea framework. Supports `tock show tmp` to view a temporary schedule defined in config.
 
 ### `internal/`
 Core application logic, separated by domain.
@@ -22,6 +22,7 @@ Core application logic, separated by domain.
 Handles configuration loading and validation.
 - Supports **TOML** for complex configurations (custom cycles, anchor dates).
 - Supports **CSV** for simple weekly schedules.
+- Supports **Temporary CSV** override via `tmp_csv_path` in TOML.
 - `FindOrCreateDefault()`: Automatically creates a default configuration file if none exists.
 - `Load()`: Dispatches to `LoadTOML` or `LoadCSV` based on file extension.
 

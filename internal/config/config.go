@@ -16,6 +16,7 @@ type Config struct {
 	CycleDays  int    `toml:"cycle_days"`
 	AnchorDate string `toml:"anchor_date"`
 	CSVPath    string `toml:"csv_path"`
+	TmpCSVPath string `toml:"tmp_csv_path"`
 	DateFormat string `toml:"date_format"`
 	Days       []Day  `toml:"day"`
 }
@@ -64,6 +65,18 @@ func LoadTOML(path string) (*Config, error) {
 		return nil, err
 	}
 
+	// Resolve TmpCSVPath relative to config file
+	if cfg.TmpCSVPath != "" {
+		tmpCsvPath, err := expandTilde(cfg.TmpCSVPath)
+		if err != nil {
+			return nil, err
+		}
+		if !filepath.IsAbs(tmpCsvPath) {
+			tmpCsvPath = filepath.Join(filepath.Dir(path), tmpCsvPath)
+		}
+		cfg.TmpCSVPath = tmpCsvPath
+	}
+
 	// Check for CSV redirection
 	if cfg.CSVPath != "" {
 		csvPath, err := expandTilde(cfg.CSVPath)
@@ -75,7 +88,14 @@ func LoadTOML(path string) (*Config, error) {
 		if !filepath.IsAbs(csvPath) {
 			csvPath = filepath.Join(filepath.Dir(path), csvPath)
 		}
-		return LoadCSV(csvPath, cfg.DateFormat)
+		
+		csvCfg, err := LoadCSV(csvPath, cfg.DateFormat)
+		if err != nil {
+			return nil, err
+		}
+		// Preserve TmpCSVPath from TOML
+		csvCfg.TmpCSVPath = cfg.TmpCSVPath
+		return csvCfg, nil
 	}
 
 	return &cfg, nil
@@ -356,6 +376,10 @@ func FindOrCreateDefault() (string, error) {
 # Tasks named "/" will be ignored and treated as empty time slots.
 csv_path = "sample.csv"
 
+# Optional: Configure a temporary/override CSV file.
+# This file is used when running 'tock show tmp'.
+# It uses the "temporary" CSV format (Start, End, Task columns).
+# tmp_csv_path = "tmp.csv"
 
 # The format for displaying dates in the TUI mode.
 # Uses Go's time.Format reference time to define layouts.

@@ -53,6 +53,17 @@ func runTUI(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
+
+		// Check for "tmp" mode argument
+		if len(args) > 0 && args[0] == "tmp" {
+			if cfg.TmpCSVPath == "" {
+				return fmt.Errorf("no 'tmp_csv_path' configured in %s", cfgFile)
+			}
+			cfg, err = config.LoadTmpCSV(cfg.TmpCSVPath)
+			if err != nil {
+				return fmt.Errorf("failed to load configured temporary config from %s: %w", cfg.TmpCSVPath, err)
+			}
+		}
 	}
 
 	if err := cfg.Validate(); err != nil {

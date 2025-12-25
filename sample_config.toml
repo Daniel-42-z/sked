@@ -2,6 +2,11 @@
 # Can be absolute or relative to this config file. '~' expands to home directory.
 # csv_path = "~/Documents/timetables/weekly_schedule.csv"
 
+# Optional: Configure a temporary/override CSV file.
+# This file is used when running 'tock show tmp'.
+# It uses the "temporary" CSV format (Start, End, Task columns).
+# tmp_csv_path = "tmp.csv"
+
 # Number of days in your cycle. Default is 7 for a standard week.
 cycle_days = 7
 
