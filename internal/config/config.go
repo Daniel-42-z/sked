@@ -112,6 +112,7 @@ func LoadCSV(path string, dateFormat string) (*Config, error) {
 	defer f.Close()
 
 	reader := csv.NewReader(f)
+	reader.Comment = '#'
 	records, err := reader.ReadAll()
 	if err != nil {
 		return nil, err
@@ -207,6 +208,7 @@ func LoadTmpCSV(path string) (*Config, error) {
 	defer f.Close()
 
 	reader := csv.NewReader(f)
+	reader.Comment = '#'
 	records, err := reader.ReadAll()
 	if err != nil {
 		return nil, err
