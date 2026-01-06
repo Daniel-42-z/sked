@@ -21,15 +21,14 @@ builds:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 
 archives:
-  - format: zip
+  - formats:
+      - zip
     # this name template makes the archive name compatible with the standard convention
     name_template: >-
       {{ .ProjectName }}-
       {{- .Version }}-
-      {{- .Os }}-
+      {{- if eq .Os "darwin" }}macos{{ else }}{{ .Os }}{{ end }}-
       {{- .Arch }}
-    replacements:
-      darwin: macos
     files:
       - sample_config.toml
       - README.md
