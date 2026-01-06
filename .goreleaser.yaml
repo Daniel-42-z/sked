@@ -21,7 +21,7 @@ builds:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 
 archives:
-  - format: tar.gz
+  - format: zip
     # this name template makes the archive name compatible with the standard convention
     name_template: >-
       {{ .ProjectName }}-
@@ -30,9 +30,10 @@ archives:
       {{- .Arch }}
     replacements:
       darwin: macos
-    format_overrides:
-      - goos: windows
-        format: zip
+    files:
+      - sample_config.toml
+      - README.md
+      - LICENSE
 
 checksum:
   name_template: 'checksums.txt'
