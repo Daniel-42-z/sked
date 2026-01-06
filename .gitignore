@@ -4,3 +4,4 @@ AUR_PUBLISHING.md
 *.tar.zst
 sample-test.csv
 config.toml
+/dist/
