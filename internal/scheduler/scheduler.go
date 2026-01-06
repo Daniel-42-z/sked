@@ -228,6 +228,23 @@ func (s *Scheduler) getCycleDayID(date time.Time) (int, error) {
 	// Anchor must be relative to the same timezone location to get correct day diff
 	anchorInLoc := time.Date(anchor.Year(), anchor.Month(), anchor.Day(), 0, 0, 0, 0, date.Location())
 
+	if s.cfg.SkipWeekends {
+		wd := d1.Weekday()
+		if wd == time.Saturday {
+			return -2, nil
+		}
+		if wd == time.Sunday {
+			return -3, nil
+		}
+
+		diff := s.countWeekdays(anchorInLoc, d1)
+		mod := diff % s.cfg.CycleDays
+		if mod < 0 {
+			mod += s.cfg.CycleDays
+		}
+		return mod, nil
+	}
+
 	diff := int(d1.Sub(anchorInLoc).Hours() / 24)
 
 	// Handle negative difference (date before anchor)
@@ -238,10 +255,43 @@ func (s *Scheduler) getCycleDayID(date time.Time) (int, error) {
 	return mod, nil
 }
 
+func (s *Scheduler) countWeekdays(start, end time.Time) int {
+	if end.Before(start) {
+		return -s.countWeekdays(end, start)
+	}
+
+	// Total days difference
+	days := int(end.Sub(start).Hours() / 24)
+
+	// Full weeks
+	weeks := days / 7
+	count := weeks * 5
+
+	// Remaining days
+	rem := days % 7
+	current := start.AddDate(0, 0, weeks*7)
+
+	for i := 0; i < rem; i++ {
+		wd := current.Weekday()
+		if wd != time.Saturday && wd != time.Sunday {
+			count++
+		}
+		current = current.AddDate(0, 0, 1)
+	}
+
+	return count
+}
+
 func (s *Scheduler) getTasksForDay(dayID int) []config.Task {
 	// If dayID is -1 (Off day), return nil
 	if dayID == -1 {
 		return nil
+	}
+	if dayID == -2 {
+		return s.cfg.Saturday
+	}
+	if dayID == -3 {
+		return s.cfg.Sunday
 	}
 	for _, d := range s.cfg.Days {
 		if d.ID == dayID {

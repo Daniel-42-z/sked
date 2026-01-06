@@ -41,6 +41,41 @@ tasks = [
 id = 5                                                         # Friday
 tasks = [{ name = "Wrap-up", start = "16:00", end = "17:00" }]
 
+# Example for a 2-day cycle:
+# cycle_days = 2
+# anchor_date = "2025-01-20" # A day that is "Day 1"
+#
+# skip_weekends = true # If true, the cycle skips Saturdays and Sundays.
+#                      # Tasks for weekends are configured separately below.
+
+# "[[day]]" represents a single day in your cycle.
+# "id" is the day number in the cycle (from 1 to cycle_days).
+#
+# [[day]]
+#   id = 1
+#   tasks = [
+#     { name = "Morning Project", start = "09:00", end = "12:00" },
+#     { name = "Team Sync",       start = "14:00", end = "14:30" },
+#   ]
+#
+# [[day]]
+#   id = 2
+#   tasks = [
+#     { name = "Client Meeting", start = "11:00", end = "12:30" },
+#     { name = "Code Review",    start = "15:00", end = "16:00" },
+#   ]
+#
+# If skip_weekends is enabled, you can define tasks for Saturday and Sunday:
+# [[saturday]]
+#   name = "Weekend Chores"
+#   start = "10:00"
+#   end = "12:00"
+#
+# [[sunday]]
+#   name = "Family Lunch"
+#   start = "13:00"
+#   end = "15:00"
+
 # --- Overrides ---
 # You can temporarily override a specific date to use a different schedule or mark it as off.
 #

@@ -19,8 +19,11 @@ type Config struct {
 	CSVPath    string     `toml:"csv_path"`
 	TmpCSVPath string     `toml:"tmp_csv_path"`
 	DateFormat string     `toml:"date_format"`
-	Days       []Day      `toml:"day"`
-	Overrides  []Override `toml:"override"`
+	Days         []Day      `toml:"day"`
+	Overrides    []Override `toml:"override"`
+	SkipWeekends bool       `toml:"skip_weekends"`
+	Saturday     []Task     `toml:"saturday"`
+	Sunday       []Task     `toml:"sunday"`
 }
 
 func closeFile(f *os.File, err *error) {
@@ -427,6 +430,9 @@ func (c *Config) Validate() error {
 	if c.CycleDays <= 0 {
 		return fmt.Errorf("cycle_days must be positive")
 	}
+	if c.SkipWeekends && c.CycleDays == 7 {
+		return fmt.Errorf("skip_weekends is only supported for non-7-day cycles")
+	}
 	if c.CycleDays != 7 && c.AnchorDate == "" {
 		return fmt.Errorf("anchor_date is required for non-7-day cycles")
 	}
@@ -507,6 +513,9 @@ csv_path = "sample.csv"
 # Example for a 2-day cycle:
 # cycle_days = 2
 # anchor_date = "2025-01-20" # A day that is "Day 1"
+#
+# skip_weekends = true # If true, the cycle skips Saturdays and Sundays.
+#                      # Tasks for weekends are configured separately below.
 
 # "[[day]]" represents a single day in your cycle.
 # "id" is the day number in the cycle (from 1 to cycle_days).
@@ -524,6 +533,17 @@ csv_path = "sample.csv"
 #     { name = "Client Meeting", start = "11:00", end = "12:30" },
 #     { name = "Code Review",    start = "15:00", end = "16:00" },
 #   ]
+#
+# If skip_weekends is enabled, you can define tasks for Saturday and Sunday:
+# [[saturday]]
+#   name = "Weekend Chores"
+#   start = "10:00"
+#   end = "12:00"
+#
+# [[sunday]]
+#   name = "Family Lunch"
+#   start = "13:00"
+#   end = "15:00"
 
 # --- Overrides ---
 # You can temporarily override a specific date to use a different schedule or mark it as off.
